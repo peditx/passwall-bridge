@@ -1,44 +1,39 @@
-import os
-import re
-import time
-from deep_translator import GoogleTranslator
-from multiprocessing import Pool, cpu_count
+name: Translate Chinese to English
 
-target_folder = "luci-app-passwall2/root/usr/share/passwall2"
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 
-translator = GoogleTranslator(source='zh-CN', target='en')
+jobs:
+  translate:
+    runs-on: ubuntu-latest
 
-chinese_pattern = re.compile(r'[\u4e00-\u9fff]+')
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-def translate_file(file_path):
-    print(f"Translating file: {file_path}")
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    def translate_match(match):
-        try:
-            return translator.translate(match.group(0))
-        except Exception as e:
-            print(f"Error translating text: {match.group(0)}. Skipping...")
-            return match.group(0)
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
 
-    translated_content = chinese_pattern.sub(translate_match, content)
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install googletrans==4.0.0-rc1
 
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(translated_content)
+    - name: Find and Translate Files
+      run: |
+        python translate_files.py
 
-def process_files(files):
-    with Pool(cpu_count()) as pool:
-        pool.map(translate_file, files)
-
-if __name__ == "__main__":
-    files_to_translate = []
-    for root, _, files in os.walk(target_folder):
-        for file_name in files:
-            file_path = os.path.join(root, file_name)
-            if file_path.endswith((".txt", ".log", ".json", ".lua", ".sh")):
-                files_to_translate.append(file_path)
-
-    print(f"Found {len(files_to_translate)} files to translate.")
-    process_files(files_to_translate)
-    print("Translation completed.")
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add .
+        git commit -m "Translate Chinese content to English"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
