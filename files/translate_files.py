@@ -4,7 +4,7 @@ import time
 from deep_translator import GoogleTranslator
 from multiprocessing import Pool, cpu_count
 
-target_folder = "luci-app-passwall2/root/usr/share/passwall2"
+target_folder = "luci-app-passwall/root/usr/share/passwall"
 
 translator = GoogleTranslator(source='zh-CN', target='en')
 
